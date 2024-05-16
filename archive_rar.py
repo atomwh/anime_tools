@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from pathlib import Path
 import subprocess
 import os
 import shutil
@@ -88,47 +89,41 @@ def compress_path(path, archive_name, password):
     return result.returncode
 
 
-def handle_compressing(src_path):
+def handle_compressing(src_path_str):
     ret = 0
-    logging.info(f"Processing {src_path}")
+    logging.info(f"Processing {src_path_str}")
 
-    if not os.path.exists(src_path):
-        logging.error(f"File does not exist: {src_path}")
+    src_path = Path(src_path_str)
+    if not src_path.exists():
+        logging.error(f"Path does not exist: {str(src_path)}")
         return 1
 
     compressed_pattern = re.compile(r'.*\.rar$|\.zip$|\.7z$', re.IGNORECASE)
-    if os.path.isfile(src_path):
-        if compressed_pattern.search(src_path):
-            archive_name = f"{ARCHIVE_PATH}/{src_path}.rar"
+    if src_path.is_file():
+        if compressed_pattern.search(src_path.name):
+            logging.warning(f"{src_path.name} is already compressed.")
+            archive_path = Path(ARCHIVE_PATH) / f"{src_path.name}.rar"
         else:
-            archive_name = "%s/%s.%s" % (
-                ARCHIVE_PATH,
-                '.'.join(src_path.split('.')[:-1]),
-                'rar',
-            )
-        if compress_path(src_path, archive_name, COMPRESS_PASSWD) != 0:
+            archive_path = Path(ARCHIVE_PATH) / src_path.with_suffix('.rar').name
+        if compress_path(str(src_path), str(archive_name), COMPRESS_PASSWD) != 0:
             logging.error(f"Compression failed: {src_path}")
             return 2
 
-    if not os.path.exists(f"{ARCHIVE_PATH}/{src_path}"):
-        os.makedirs(f"{ARCHIVE_PATH}/{src_path}")
-    archive_prefix = f"{ARCHIVE_PATH}/{src_path}"
-    for item in os.listdir(src_path):
-        if os.path.isfile(f"{src_path}/{item}"):
-            if compressed_pattern.search(item):
-                logging.warning(f"{item} is already compressed.")
-                archive_name = "%s/%s.%s" % (archive_prefix, item, 'rar')
-            else:
-                archive_name = "%s/%s.%s" % (
-                    archive_prefix,
-                    '.'.join(item.split('.')[:-1]),
-                    'rar',
-                )
-        else:
-            archive_name = "%s/%s.%s" % (archive_prefix, item, 'rar')
+    archive_prefix_path = Path(ARCHIVE_PATH) / src_path
+    archive_prefix_path.mkdir(parents=True, exist_ok=True)
 
-        if compress_path(f"{src_path}/{item}", archive_name, COMPRESS_PASSWD) != 0:
-            ret = 1
+    for entry in src_path.iterdir():
+        if entry.is_file():
+            if compressed_pattern.search(entry.name):
+                logging.warning(f"{entry.name} has already been compressed.")
+                archive_path = archive_prefix_path / f"{entry.name}.rar"
+            else:
+                archive_path = archive_prefix_path / entry.with_suffix('.rar').name
+        else:
+            archive_path = archive_prefix_path / f"{entry.name}.rar"
+
+        if compress_path(str(entry), str(archive_path), COMPRESS_PASSWD) != 0:
+            ret = 3
             break
 
     return ret
