@@ -5,25 +5,30 @@ import os
 import shutil
 import logging
 import re
+import locale
+
+ARCHIVE_LIST = './archive.txt'
+ARCHIVE_PATH = './archive'
+LOG_FILE = './archive.log'
+LIMIT_SIZE = 4 * 1024 * 1024 * 1024
+COMPRESS_PASSWD = 'ReplaceME'
+SYSTEM_ENCODING = locale.getpreferredencoding()
+DEFAULT_ENCODING = 'utf-8'
+
 
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s: %(levelname)s: %(message)s',
     handlers=[
-        logging.FileHandler('archive.log', 'w', 'utf-8'),
+        logging.FileHandler(LOG_FILE, 'w', DEFAULT_ENCODING),
         logging.StreamHandler(),
     ],
 )
 
-ARCHIVE_LIST = './archive.txt'
-ARCHIVE_PATH = './archive'
-LIMIT_SIZE = 4 * 1024 * 1024 * 1024
-COMPRESS_PASSWD = 'ReplaceME'
-
 
 def is_rar_available():
-    """Check if 7z is available."""
+    """Check if rar is available."""
     return shutil.which('rar') is not None
 
 
@@ -70,9 +75,16 @@ def compress_path(path, archive_name, password):
         command.insert(4, f'-v{LIMIT_SIZE}b')
 
     logging.info(f"Compressing {path} to {archive_name}")
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    result = subprocess.run(command, capture_output=True)
     if result.returncode != 0:
         logging.error(f"Compression failed: {path}")
+        try:
+            stderr_output = result.stderr.decode(SYSTEM_ENCODING)
+        except UnicodeDecodeError:
+            stderr_output = result.stderr.decode(DEFAULT_ENCODING, errors='replace')
+        # write stderr output to log file
+        with open(LOG_FILE, 'a', encoding=DEFAULT_ENCODING) as log_file:
+            log_file.write(stderr_output)
     return result.returncode
 
 
@@ -132,7 +144,7 @@ def main():
         return 1
 
     try:
-        with open(ARCHIVE_LIST, 'r', encoding='UTF-8') as file:
+        with open(ARCHIVE_LIST, 'r', encoding=DEFAULT_ENCODING) as file:
             paths = file.read().splitlines()
     except FileNotFoundError:
         logging.error("The file archive.txt was not found.")
