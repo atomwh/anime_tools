@@ -8,21 +8,21 @@ import logging
 import re
 import locale
 
-ARCHIVE_LIST = './archive.txt'
-ARCHIVE_PATH = './archive'
-LOG_FILE = './archive.log'
+ARCHIVE_LIST = "./archive.txt"
+ARCHIVE_PATH = "./archive"
+LOG_FILE = "./archive.log"
 LIMIT_SIZE = 4 * 1024 * 1024 * 1024
-COMPRESS_PASSWD = 'ReplaceME'
+COMPRESS_PASSWD = "ReplaceME"
 SYSTEM_ENCODING = locale.getpreferredencoding()
-DEFAULT_ENCODING = 'utf-8'
+DEFAULT_ENCODING = "utf-8"
 
 
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s: %(levelname)s: %(message)s',
+    format="%(asctime)s: %(levelname)s: %(message)s",
     handlers=[
-        logging.FileHandler(LOG_FILE, 'w', DEFAULT_ENCODING),
+        logging.FileHandler(LOG_FILE, "w", DEFAULT_ENCODING),
         logging.StreamHandler(),
     ],
 )
@@ -30,10 +30,10 @@ logging.basicConfig(
 
 def is_rar_available():
     """Check if rar is available."""
-    return shutil.which('rar') is not None
+    return shutil.which("rar") is not None
 
 
-def get_dir_size(start_path='.'):
+def get_dir_size(start_path="."):
     total_size = 0
     for dirpath, dirnames, filenames in os.walk(start_path):
         for f in filenames:
@@ -61,19 +61,19 @@ def is_larger_than_4gb(path):
 def compress_path(path, archive_name, password):
     """Compress the given directory with rar using multi-threading."""
     command = [
-        'rar',
-        '-ma5',
-        '-rr5',
-        '-m0',
-        '-hp{}'.format(password),
-        '-ep1',
-        'a',
-        '-r',
+        "rar",
+        "-ma5",
+        "-rr5",
+        "-m0",
+        "-hp{}".format(password),
+        "-ep1",
+        "a",
+        "-r",
         archive_name,
         path,
     ]
     if is_larger_than_4gb(path):
-        command.insert(4, f'-v{LIMIT_SIZE}b')
+        command.insert(4, f"-v{LIMIT_SIZE}b")
 
     logging.info(f"Compressing {path} to {archive_name}")
     result = subprocess.run(command, capture_output=True)
@@ -82,9 +82,9 @@ def compress_path(path, archive_name, password):
         try:
             stderr_output = result.stderr.decode(SYSTEM_ENCODING)
         except UnicodeDecodeError:
-            stderr_output = result.stderr.decode(DEFAULT_ENCODING, errors='replace')
+            stderr_output = result.stderr.decode(DEFAULT_ENCODING, errors="replace")
         # write stderr output to log file
-        with open(LOG_FILE, 'a', encoding=DEFAULT_ENCODING) as log_file:
+        with open(LOG_FILE, "a", encoding=DEFAULT_ENCODING) as log_file:
             log_file.write(stderr_output)
     return result.returncode
 
@@ -98,13 +98,13 @@ def handle_compressing(src_path_str):
         logging.error(f"Path does not exist: {str(src_path)}")
         return 1
 
-    compressed_pattern = re.compile(r'.*\.rar$|\.zip$|\.7z$', re.IGNORECASE)
+    compressed_pattern = re.compile(r".*\.rar$|\.zip$|\.7z$", re.IGNORECASE)
     if src_path.is_file():
         if compressed_pattern.search(src_path.name):
             logging.warning(f"{src_path.name} is already compressed.")
             archive_path = Path(ARCHIVE_PATH) / f"{src_path.name}.rar"
         else:
-            archive_path = Path(ARCHIVE_PATH) / src_path.with_suffix('.rar').name
+            archive_path = Path(ARCHIVE_PATH) / src_path.with_suffix(".rar").name
         if compress_path(str(src_path), str(archive_name), COMPRESS_PASSWD) != 0:
             logging.error(f"Compression failed: {src_path}")
             return 2
@@ -118,7 +118,7 @@ def handle_compressing(src_path_str):
                 logging.warning(f"{entry.name} has already been compressed.")
                 archive_path = archive_prefix_path / f"{entry.name}.rar"
             else:
-                archive_path = archive_prefix_path / entry.with_suffix('.rar').name
+                archive_path = archive_prefix_path / entry.with_suffix(".rar").name
         else:
             archive_path = archive_prefix_path / f"{entry.name}.rar"
 
@@ -139,7 +139,7 @@ def main():
         return 1
 
     try:
-        with open(ARCHIVE_LIST, 'r', encoding=DEFAULT_ENCODING) as file:
+        with open(ARCHIVE_LIST, "r", encoding=DEFAULT_ENCODING) as file:
             paths = file.read().splitlines()
     except FileNotFoundError:
         logging.error("The file archive.txt was not found.")
