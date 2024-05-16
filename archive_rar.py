@@ -49,7 +49,7 @@ def compress_path(path, archive_name, password):
         '-ep1', 'a', '-r', archive_name, path
     ]
     if is_larger_than_4gb(path):
-        command.insert(4, f'-v{LIMIT_SIZE}')
+        command.insert(4, f'-v{LIMIT_SIZE}b')
 
     logging.info(f"Compressing {path} to {archive_name}")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
