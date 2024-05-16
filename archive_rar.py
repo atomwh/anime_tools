@@ -122,7 +122,10 @@ def main():
             ret = 3
             break
 
-    logging.info("All files processed up to the point of failure or completion.")
+    if ret == 0:
+        logging.info("All files processed successfully.")
+    else:
+        logging.error("Some files failed to compress. lease check the log file.")
     return ret
 
 if __name__ == "__main__":
