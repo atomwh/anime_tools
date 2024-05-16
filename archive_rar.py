@@ -7,19 +7,27 @@ import logging
 import re
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s',
-                    handlers=[logging.FileHandler('archive.log', 'w', 'utf-8'), logging.StreamHandler()])
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s: %(levelname)s: %(message)s',
+    handlers=[
+        logging.FileHandler('archive.log', 'w', 'utf-8'),
+        logging.StreamHandler(),
+    ],
+)
 
 ARCHIVE_LIST = './archive.txt'
 ARCHIVE_PATH = './archive'
 LIMIT_SIZE = 4 * 1024 * 1024 * 1024
 COMPRESS_PASSWD = 'ReplaceME'
 
+
 def is_rar_available():
     """Check if 7z is available."""
     return shutil.which('rar') is not None
 
-def get_dir_size(start_path = '.'):
+
+def get_dir_size(start_path='.'):
     total_size = 0
     for dirpath, dirnames, filenames in os.walk(start_path):
         for f in filenames:
@@ -29,6 +37,7 @@ def get_dir_size(start_path = '.'):
                 total_size += os.path.getsize(fp)
 
     return total_size
+
 
 def is_larger_than_4gb(path):
     """Check if the size of the given file or directory is larger than 4 GB."""
@@ -42,11 +51,20 @@ def is_larger_than_4gb(path):
         print(f"{path} is neither a file nor a directory.")
         return False
 
+
 def compress_path(path, archive_name, password):
     """Compress the given directory with rar using multi-threading."""
     command = [
-        'rar', '-ma5', '-rr5', '-m0', '-hp{}'.format(password),
-        '-ep1', 'a', '-r', archive_name, path
+        'rar',
+        '-ma5',
+        '-rr5',
+        '-m0',
+        '-hp{}'.format(password),
+        '-ep1',
+        'a',
+        '-r',
+        archive_name,
+        path,
     ]
     if is_larger_than_4gb(path):
         command.insert(4, f'-v{LIMIT_SIZE}b')
@@ -56,6 +74,7 @@ def compress_path(path, archive_name, password):
     if result.returncode != 0:
         logging.error(f"Compression failed: {path}")
     return result.returncode
+
 
 def handle_compressing(src_path):
     ret = 0
@@ -70,7 +89,11 @@ def handle_compressing(src_path):
         if compressed_pattern.search(src_path):
             archive_name = f"{ARCHIVE_PATH}/{src_path}.rar"
         else:
-            archive_name = "%s/%s.%s" %(ARCHIVE_PATH, '.'.join(src_path.split('.')[:-1]), 'rar')
+            archive_name = "%s/%s.%s" % (
+                ARCHIVE_PATH,
+                '.'.join(src_path.split('.')[:-1]),
+                'rar',
+            )
         if compress_path(src_path, archive_name, COMPRESS_PASSWD) != 0:
             logging.error(f"Compression failed: {src_path}")
             return 2
@@ -82,17 +105,22 @@ def handle_compressing(src_path):
         if os.path.isfile(f"{src_path}/{item}"):
             if compressed_pattern.search(item):
                 logging.warning(f"{item} is already compressed.")
-                archive_name = "%s/%s.%s" %(archive_prefix, item, 'rar')
+                archive_name = "%s/%s.%s" % (archive_prefix, item, 'rar')
             else:
-                archive_name = "%s/%s.%s" %(archive_prefix, '.'.join(item.split('.')[:-1]), 'rar')
+                archive_name = "%s/%s.%s" % (
+                    archive_prefix,
+                    '.'.join(item.split('.')[:-1]),
+                    'rar',
+                )
         else:
-            archive_name = "%s/%s.%s" %(archive_prefix, item, 'rar')
+            archive_name = "%s/%s.%s" % (archive_prefix, item, 'rar')
 
         if compress_path(f"{src_path}/{item}", archive_name, COMPRESS_PASSWD) != 0:
             ret = 1
             break
 
     return ret
+
 
 def main():
     ret = 0
@@ -111,7 +139,9 @@ def main():
         return 2
 
     if os.path.exists(ARCHIVE_PATH) and os.path.isfile(ARCHIVE_PATH):
-        logging.error("Result path {ARCHIVE_PATH} is a file. Please rename the file or change the ARCHIVE_PATH")
+        logging.error(
+            "Result path {ARCHIVE_PATH} is a file. Please rename the file or change the ARCHIVE_PATH"
+        )
         return 3
     if not os.path.exists(ARCHIVE_PATH):
         os.makedirs(ARCHIVE_PATH)
@@ -127,6 +157,7 @@ def main():
     else:
         logging.error("Some files failed to compress. lease check the log file.")
     return ret
+
 
 if __name__ == "__main__":
     exit(main())
