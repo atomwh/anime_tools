@@ -119,6 +119,14 @@ def handle_compressing(src_path_str):
                 archive_path = archive_prefix_path / f"{entry.name}.rar"
             else:
                 archive_path = archive_prefix_path / entry.with_suffix(".rar").name
+                archive_part_path = archive_prefix_path / entry.with_suffix(".part1.rar").name
+                """
+                    sometime there are files have the same name without suffix,
+                    for example: A.mka and A.mkv, or A.ass and A.mp4
+                    we need to handle this by add original suffix back
+                """
+                if archive_path.exists() or archive_part_path.exists():
+                    archive_path = archive_prefix_path / f"{entry.name}.rar"
         else:
             archive_path = archive_prefix_path / f"{entry.name}.rar"
 
